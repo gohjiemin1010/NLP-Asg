@@ -347,6 +347,23 @@ div.st-key-story_btn_0 button[data-testid="stBaseButton-secondary"] {
     background: linear-gradient(#F4F4F4, #F4F4F4) padding-box,
                 linear-gradient(#D8D8D8, #D8D8D8) border-box !important;
 }
+div[class*="st-key-story_btn_"],
+div[class*="st-key-story_btn_"] div[data-testid="stButton"] {
+    display: flex !important;
+    justify-content: center !important;
+    width: 100% !important;
+}
+.story-name {
+    font-size: 11px !important;
+    color: #262626 !important;
+    text-align: center !important;
+    width: 100% !important;
+    margin-top: -12px !important;
+    margin-bottom: 0px !important;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
 </style>
 """, unsafe_allow_html=True)
 
