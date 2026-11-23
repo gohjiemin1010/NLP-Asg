@@ -269,8 +269,7 @@ def lemmatise_sentence(text: str) -> str:
 if "active_tab" not in st.session_state:
     st.session_state.active_tab = "home"
 
-if "posts" not in st.session_state:
-    st.session_state.posts = [
+if "posts" not in st.session_state or "reposts" not in st.session_state.posts[0]:    st.session_state.posts = [
         {
             "id": 1,
             "username": "jiemin_eats",
