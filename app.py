@@ -1,6 +1,14 @@
 import os
 import re
 import streamlit as st
+from PIL import Image
+
+# Safe import for OCR (won't crash if pytesseract isn't installed yet)
+try:
+    import pytesseract
+    OCR_AVAILABLE = True
+except ImportError:
+    OCR_AVAILABLE = False
 
 # ==============================================================================
 # 1. PAGE CONFIG & AUTHENTIC INSTAGRAM LIGHT MODE CSS
@@ -54,26 +62,15 @@ div[data-testid="stHorizontalBlock"] {
     margin-top: 2px;
 }
 
-/* Stories Row */
-.stories-row {
+/* Clickable Stories Bar */
+.story-ring-wrap {
     display: flex;
-    gap: 14px;
-    overflow-x: auto;
-    padding: 8px 2px 12px 2px;
-    border-bottom: 1px solid #EFEFEF;
-    margin-bottom: 10px;
-    scrollbar-width: none;
-}
-.stories-row::-webkit-scrollbar { display: none; }
-.story-item {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    min-width: 64px;
+    justify-content: center;
+    margin-bottom: 2px;
 }
 .story-ring {
-    width: 62px;
-    height: 62px;
+    width: 58px;
+    height: 58px;
     border-radius: 50%;
     padding: 2.5px;
     background: linear-gradient(45deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%);
@@ -83,8 +80,8 @@ div[data-testid="stHorizontalBlock"] {
     position: relative;
 }
 .story-ring-plain {
-    width: 62px;
-    height: 62px;
+    width: 58px;
+    height: 58px;
     border-radius: 50%;
     padding: 2px;
     background: #E0E0E0;
@@ -103,35 +100,54 @@ div[data-testid="stHorizontalBlock"] {
     align-items: center;
     justify-content: center;
     font-weight: 600;
-    font-size: 16px;
+    font-size: 15px;
     color: #333333;
 }
 .story-plus-badge {
     position: absolute;
     bottom: 0px;
     right: 0px;
-    width: 20px;
-    height: 20px;
+    width: 19px;
+    height: 19px;
     border-radius: 50%;
     background-color: #000000;
     color: #FFFFFF;
     border: 2px solid #FFFFFF;
-    font-size: 13px;
+    font-size: 12px;
     font-weight: 700;
     display: flex;
     align-items: center;
     justify-content: center;
     line-height: 1;
 }
-.story-name {
-    font-size: 11px;
-    color: #262626;
-    margin-top: 5px;
-    max-width: 64px;
+.stories-divider {
+    border-bottom: 1px solid #EFEFEF;
+    margin: 4px 0 10px 0;
+}
+
+/* Story Name Clickable Button */
+div[class*="st-key-story_btn_"] button {
+    font-size: 11px !important;
+    font-weight: 400 !important;
+    color: #262626 !important;
+    padding: 2px 0 !important;
+    width: 100% !important;
+    justify-content: center !important;
+}
+
+/* Story Viewer Top Progress Bar */
+.story-progress-bg {
+    width: 100%;
+    height: 3px;
+    background-color: #E0E0E0;
+    border-radius: 2px;
+    margin: 4px 0 10px 0;
     overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    text-align: center;
+}
+.story-progress-fill {
+    width: 65%;
+    height: 100%;
+    background-color: #262626;
 }
 
 /* Post Header */
@@ -170,7 +186,7 @@ div[data-testid="stHorizontalBlock"] {
     height: 300px;
     background-color: #F7F7F7;
     border: 1.5px dashed #CCCCCC;
-    border-radius: 4px;
+    border-radius: 6px;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -179,6 +195,7 @@ div[data-testid="stHorizontalBlock"] {
     font-size: 13px;
     text-align: center;
     margin-bottom: 6px;
+    padding: 16px;
 }
 
 /* Caption & Lemmatise Output Box */
@@ -192,7 +209,7 @@ div[data-testid="stHorizontalBlock"] {
     background-color: #F8F9FA;
     border-left: 3px solid #262626;
     border-radius: 6px;
-    padding: 8px 12px;
+    padding: 9px 12px;
     margin: 6px 0 8px 0;
     font-size: 13px;
     line-height: 1.5;
@@ -211,7 +228,7 @@ div[data-testid="stHorizontalBlock"] {
     margin: 8px 0 12px 0;
 }
 
-/* Force ALL Streamlit buttons to be 100% borderless & transparent */
+/* Force ALL Streamlit buttons to be borderless & transparent */
 div.stButton > button,
 button[data-testid="stBaseButton-secondary"] {
     background-color: transparent !important;
@@ -236,6 +253,21 @@ button[data-testid="stBaseButton-secondary"]:focus {
     color: #737373 !important;
 }
 
+/* Pill CTA button specifically for Story Scan & Lemmatise */
+div[class*="st-key-scan_story_"] button {
+    background-color: #000000 !important;
+    color: #FFFFFF !important;
+    border-radius: 20px !important;
+    padding: 8px 16px !important;
+    font-size: 13px !important;
+    font-weight: 600 !important;
+    margin-top: 8px !important;
+}
+div[class*="st-key-scan_story_"] button:hover {
+    background-color: #333333 !important;
+    color: #FFFFFF !important;
+}
+
 /* Action Bar Icons Size */
 div.stButton > button span[data-testid="stIconMaterial"] {
     font-size: 22px !important;
@@ -254,7 +286,7 @@ div[class*="st-key-saved_"] button span[data-testid="stIconMaterial"] {
     font-variation-settings: 'FILL' 1 !important;
 }
 
-/* Timestamp + Lemmatise Inline Link (exact same size & color) */
+/* Timestamp + Lemmatise Inline Link */
 div[class*="st-key-lemma_post_"] button {
     font-size: 12px !important;
     font-weight: 400 !important;
@@ -266,7 +298,7 @@ div[class*="st-key-lemma_post_"] button:hover {
     color: #262626 !important;
 }
 
-/* Bottom Navigation Bar: All 5 icons identical size & perfectly aligned */
+/* Bottom Navigation Bar */
 .bottom-nav-line {
     border-top: 1px solid #DBDBDB;
     margin-top: 8px;
@@ -288,7 +320,7 @@ div[class*="st-key-nav_"] button span[data-testid="stIconMaterial"] {
 
 
 # ==============================================================================
-# 2. BACKEND PLACEHOLDER (Replace with your teammate's real NLP functions later)
+# 2. BACKEND PLACEHOLDER + IMAGE OCR HELPER
 # ==============================================================================
 MOCK_SLANG_DICT = {
     "xleh": "tidak boleh", "takleh": "tidak boleh", "mcm": "macam",
@@ -297,7 +329,7 @@ MOCK_SLANG_DICT = {
     "saye": "saya", "nak": "hendak", "tak": "tidak", "dah": "sudah",
     "kat": "dekat", "je": "sahaja", "tapi": "tetapi", "pls": "please",
     "tmr": "tomorrow", "gonna": "going to", "dunno": "do not know",
-    "japgi": "sekejap lagi", "skali": "sekali",
+    "japgi": "sekejap lagi", "skali": "sekali", "sbb": "sebab",
 }
 
 def lemmatise_word(word: str) -> str:
@@ -317,12 +349,75 @@ def lemmatise_sentence(text: str) -> str:
     lemmas = [lemmatise_word(t) if re.match(r"^[a-zA-Z0-9]+$", t) else t for t in tokens]
     return " ".join(lemmas)
 
+def extract_text_from_image(img_source) -> str:
+    """Scan text from an uploaded image or local file path using Tesseract OCR."""
+    if not OCR_AVAILABLE:
+        return ""
+    try:
+        img = Image.open(img_source)
+        raw_text = pytesseract.image_to_string(img)
+        cleaned = re.sub(r"\s+", " ", raw_text).strip()
+        return cleaned
+    except Exception:
+        return ""
+
 
 # ==============================================================================
-# 3. SESSION STATE
+# 3. SESSION STATE (Stories & Posts)
 # ==============================================================================
 if "active_tab" not in st.session_state:
     st.session_state.active_tab = "home"
+if "active_story_id" not in st.session_state:
+    st.session_state.active_story_id = None
+
+if "stories" not in st.session_state:
+    st.session_state.stories = [
+        {
+            "id": 0,
+            "name": "Your story",
+            "initials": "JM",
+            "is_you": True,
+            "time": "Upload",
+            "image": None,
+            "fallback_text": "",
+        },
+        {
+            "id": 1,
+            "name": "britnchan",
+            "initials": "BC",
+            "is_you": False,
+            "time": "2h",
+            "image": "images/story1.jpg",
+            "fallback_text": "Promo arini je! Beli 2 kopi dapat free cake, mmg berbaloi gila!",
+        },
+        {
+            "id": 2,
+            "name": "bell_lh",
+            "initials": "BL",
+            "is_you": False,
+            "time": "4h",
+            "image": "images/story2.jpg",
+            "fallback_text": "Saye xleh fokus studying sbb laparrrr nak makan2 kat mamak.",
+        },
+        {
+            "id": 3,
+            "name": "kl_food",
+            "initials": "KF",
+            "is_you": False,
+            "time": "6h",
+            "image": "images/story3.jpg",
+            "fallback_text": "New cafe opening tmr! Coffee sedap dgn vibes mmg nice.",
+        },
+        {
+            "id": 4,
+            "name": "tarumt",
+            "initials": "TR",
+            "is_you": False,
+            "time": "9h",
+            "image": "images/story4.jpg",
+            "fallback_text": "Pls submit assignment before 5pm arini, jgn lupa check format!",
+        },
+    ]
 
 if "posts" not in st.session_state or "reposts" not in st.session_state.posts[0]:
     st.session_state.posts = [
@@ -388,231 +483,307 @@ if "posts" not in st.session_state or "reposts" not in st.session_state.posts[0]
 
 
 # ==============================================================================
-# 4. INSTAGRAM TOP BAR (+   Instagram   ♡)
+# 4. STORY VIEWER MODE (When a Story circle is clicked)
 # ==============================================================================
-t1, t2, t3 = st.columns([1, 4, 1])
-with t1:
-    if st.button("", icon=":material/add:", key="top_plus", help="Create Post"):
-        st.session_state.active_tab = "create"
-        st.rerun()
-with t2:
-    st.markdown('<div class="ig-logo">Instagram</div>', unsafe_allow_html=True)
-with t3:
-    heart_svg = (
-        '<div style="display:flex; justify-content:flex-end; padding-top:4px;">'
-        '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#000000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">'
-        '<path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>'
-        '</svg></div>'
+if st.session_state.active_tab == "story":
+    story = next(
+        (s for s in st.session_state.stories if s["id"] == st.session_state.active_story_id),
+        st.session_state.stories[0],
     )
-    st.markdown(heart_svg, unsafe_allow_html=True)
 
+    # IG Story Progress Bar
+    st.markdown('<div class="story-progress-bg"><div class="story-progress-fill"></div></div>', unsafe_allow_html=True)
 
-# ==============================================================================
-# 5. TAB 1: HOME FEED
-# ==============================================================================
-if st.session_state.active_tab == "home":
-    stories = [
-        ("Your story", "JM", True),
-        ("britnchan", "BC", False),
-        ("bell_lh", "BL", False),
-        ("_yywenc", "YW", False),
-        ("kl_food", "KF", False),
-        ("tarumt", "TR", False),
-    ]
-    stories_html = '<div class="stories-row">'
-    for name, initials, is_you in stories:
-        if is_you:
-            stories_html += (
-                f'<div class="story-item">'
-                f'<div class="story-ring-plain"><div class="story-inner">{initials}</div>'
-                f'<div class="story-plus-badge">+</div></div>'
-                f'<div class="story-name">{name}</div></div>'
-            )
-        else:
-            stories_html += (
-                f'<div class="story-item">'
-                f'<div class="story-ring"><div class="story-inner">{initials}</div></div>'
-                f'<div class="story-name">{name}</div></div>'
-            )
-    stories_html += '</div>'
-    st.markdown(stories_html, unsafe_allow_html=True)
-
-    # Scrollable Posts Feed
-    for post in st.session_state.posts:
-        pid = post["id"]
-
-        # Post Header
-        header_html = (
-            f'<div class="post-header">'
-            f'<div class="post-user-info">'
-            f'<div class="post-avatar">{post["avatar"]}</div>'
-            f'<div><div class="post-username">{post["username"]}</div>'
-            f'<div class="post-location">{post["location"]}</div></div></div>'
-            f'<div style="color:#000; font-weight:700; font-size:16px;">⋯</div></div>'
-        )
-        st.markdown(header_html, unsafe_allow_html=True)
-
-        # Post Image
-        if os.path.exists(post["image"]):
-            st.image(post["image"], use_container_width=True)
-        else:
-            placeholder_html = (
-                f'<div class="img-placeholder">'
-                f'<div style="font-size:14px; font-weight:600; color:#555;">Photo Placeholder</div>'
-                f'<div style="font-size:11px; margin-top:4px;">Put your photo at: <code>{post["image"]}</code></div>'
-                f'</div>'
-            )
-            st.markdown(placeholder_html, unsafe_allow_html=True)
-
-        # Action Bar (Tight spacing on the left, Bookmark pushed to far right)
-        a1, a2, a3, a4, spacer, a5 = st.columns([0.95, 0.72, 0.72, 0.85, 2.0, 0.45], gap="small")
-        with a1:
-            like_key = f"liked_{pid}" if post["liked"] else f"unliked_{pid}"
-            if st.button(f"{post['likes']}", icon=":material/favorite:", key=like_key):
-                post["liked"] = not post["liked"]
-                post["likes"] += 1 if post["liked"] else -1
-                st.rerun()
-        with a2:
-            if st.button(f"{len(post['comments'])}", icon=":material/chat_bubble:", key=f"cm_btn_{pid}"):
-                post["show_comments"] = not post["show_comments"]
-                st.rerun()
-        with a3:
-            if st.button(f"{post['reposts']}", icon=":material/repeat:", key=f"repost_{pid}"):
-                post["reposts"] += 1
-                st.rerun()
-        with a4:
-            st.button(f"{post['shares']}", icon=":material/send:", key=f"share_{pid}")
-        with a5:
-            save_key = f"saved_{pid}" if post["saved"] else f"unsaved_{pid}"
-            if st.button("", icon=":material/bookmark:", key=save_key):
-                post["saved"] = not post["saved"]
-                st.rerun()
-
-        # Caption
+    # Story Header (Avatar + Name + Close Button)
+    sh1, sh2 = st.columns([5, 1])
+    with sh1:
         st.markdown(
-            f'<div class="post-caption"><b>{post["username"]}</b> {post["caption"]}</div>',
+            f'<div class="post-user-info" style="padding:2px 0 8px 0;">'
+            f'<div class="post-avatar">{story["initials"]}</div>'
+            f'<div><div class="post-username">{story["name"]} '
+            f'<span style="font-weight:400; color:#737373; font-size:12px;">· {story["time"]}</span></div>'
+            f'<div class="post-location">Story Image Scanner (OCR)</div></div></div>',
             unsafe_allow_html=True,
         )
-
-        # Combined "1 day ago · Lemmatise" inline button (exact same font size & color)
-        action_word = "See Original" if post["show_lemma"] else "Lemmatise"
-        if st.button(f"{post['time']} · {action_word}", key=f"lemma_post_{pid}"):
-            post["show_lemma"] = not post["show_lemma"]
+    with sh2:
+        if st.button("", icon=":material/close:", key="close_story", use_container_width=True):
+            st.session_state.active_tab = "home"
+            st.session_state.active_story_id = None
             st.rerun()
 
-        # Lemmatised Output
-        if post["show_lemma"]:
-            lemma_res = lemmatise_sentence(post["caption"])
+    # Case A: "Your story" -> Upload any photo with text to scan live
+    if story["is_you"]:
+        uploaded = st.file_uploader("Upload a Story photo containing text", type=["jpg", "jpeg", "png"])
+        if uploaded is not None:
+            st.image(uploaded, use_container_width=True)
+            if st.button("Scan & Lemmatise Text", key="scan_story_upload", use_container_width=True):
+                scanned = extract_text_from_image(uploaded)
+                if scanned:
+                    lemma_res = lemmatise_sentence(scanned)
+                    st.markdown(
+                        f'<div class="lemma-output">'
+                        f'<div class="lemma-tag">Scanned Text (OCR)</div><div>{scanned}</div><br>'
+                        f'<div class="lemma-tag">Lemmatised</div><div>{lemma_res}</div>'
+                        f'</div>',
+                        unsafe_allow_html=True,
+                    )
+                else:
+                    st.warning("No readable text detected in this photo. Try a clearer image with printed text.")
+        else:
             st.markdown(
-                f'<div class="lemma-output"><div class="lemma-tag">Lemmatised</div>{lemma_res}</div>',
+                '<div class="img-placeholder">'
+                '<div style="font-size:14px; font-weight:600; color:#555;">Live Story OCR Scanner</div>'
+                '<div style="font-size:12px; margin-top:6px;">Upload any screenshot or photo with Malay-English text above to scan and lemmatise it.</div>'
+                '</div>',
                 unsafe_allow_html=True,
             )
 
-        # Comments Section
-        if post["show_comments"]:
-            st.markdown('<div style="font-size:12px; font-weight:600; color:#737373; margin:6px 0;">Comments</div>', unsafe_allow_html=True)
-            for idx, cm in enumerate(post["comments"]):
-                c_txt, c_btn = st.columns([3.4, 1.1], gap="small")
-                with c_txt:
-                    st.markdown(
-                        f'<div style="font-size:13px; color:#000; padding-top:2px;"><b>{cm["user"]}</b> {cm["text"]}</div>',
-                        unsafe_allow_html=True,
-                    )
-                with c_btn:
-                    cm_label = "Hide" if cm["show_lemma"] else "Lemmatise"
-                    if st.button(cm_label, key=f"cm_lem_{pid}_{idx}"):
-                        cm["show_lemma"] = not cm["show_lemma"]
-                        st.rerun()
-                if cm["show_lemma"]:
-                    cm_lemma = lemmatise_sentence(cm["text"])
-                    st.markdown(
-                        f'<div class="lemma-output"><div class="lemma-tag">Lemmatised</div>{cm_lemma}</div>',
-                        unsafe_allow_html=True,
-                    )
+    # Case B: Friend's Story -> Display local .jpg and scan its text
+    else:
+        has_img = story["image"] and os.path.exists(story["image"])
+        if has_img:
+            st.image(story["image"], use_container_width=True)
+        else:
+            st.markdown(
+                f'<div class="img-placeholder">'
+                f'<div style="font-size:14px; font-weight:600; color:#555;">Story Photo Placeholder</div>'
+                f'<div style="font-size:11.5px; margin-top:4px;">Put your photo with text at: <code>{story["image"]}</code></div>'
+                f'<div style="font-size:12px; color:#262626; margin-top:12px; font-style:italic;">"{story["fallback_text"]}"</div>'
+                f'</div>',
+                unsafe_allow_html=True,
+            )
 
-            with st.form(key=f"add_cm_{pid}", clear_on_submit=True):
-                new_cm = st.text_input("Comment", placeholder="Add a comment...", label_visibility="collapsed")
-                if st.form_submit_button("Post") and new_cm.strip():
-                    post["comments"].append({"user": "you_demo", "text": new_cm.strip(), "show_lemma": False})
+        if st.button("Scan & Lemmatise Text", key=f"scan_story_{story['id']}", use_container_width=True):
+            scanned = extract_text_from_image(story["image"]) if has_img else ""
+            used_fallback = False
+            if not scanned:
+                scanned = story["fallback_text"]
+                used_fallback = True
+
+            lemma_res = lemmatise_sentence(scanned)
+            note = " (Demo Preview)" if used_fallback else " (OCR)"
+            st.markdown(
+                f'<div class="lemma-output">'
+                f'<div class="lemma-tag">Scanned Text{note}</div><div>{scanned}</div><br>'
+                f'<div class="lemma-tag">Lemmatised</div><div>{lemma_res}</div>'
+                f'</div>',
+                unsafe_allow_html=True,
+            )
+
+
+# ==============================================================================
+# 5. MAIN APP VIEW (Top Bar + Home / Word / Create + Bottom Bar)
+# ==============================================================================
+else:
+    # --- INSTAGRAM TOP BAR (+   Instagram   ♡) ---
+    t1, t2, t3 = st.columns([1, 4, 1])
+    with t1:
+        if st.button("", icon=":material/add:", key="top_plus", help="Create Post"):
+            st.session_state.active_tab = "create"
+            st.rerun()
+    with t2:
+        st.markdown('<div class="ig-logo">Instagram</div>', unsafe_allow_html=True)
+    with t3:
+        heart_svg = (
+            '<div style="display:flex; justify-content:flex-end; padding-top:4px;">'
+            '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#000000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">'
+            '<path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>'
+            '</svg></div>'
+        )
+        st.markdown(heart_svg, unsafe_allow_html=True)
+
+    # --- TAB 1: HOME FEED ---
+    if st.session_state.active_tab == "home":
+        # Clickable IG Stories Row (5 circles across)
+        s_cols = st.columns(5, gap="small")
+        for idx, s in enumerate(st.session_state.stories):
+            with s_cols[idx]:
+                if s["is_you"]:
+                    ring_html = (
+                        f'<div class="story-ring-wrap"><div class="story-ring-plain">'
+                        f'<div class="story-inner">{s["initials"]}</div>'
+                        f'<div class="story-plus-badge">+</div></div></div>'
+                    )
+                else:
+                    ring_html = (
+                        f'<div class="story-ring-wrap"><div class="story-ring">'
+                        f'<div class="story-inner">{s["initials"]}</div></div></div>'
+                    )
+                st.markdown(ring_html, unsafe_allow_html=True)
+                if st.button(s["name"], key=f"story_btn_{s['id']}", use_container_width=True):
+                    st.session_state.active_story_id = s["id"]
+                    st.session_state.active_tab = "story"
                     st.rerun()
 
-        st.markdown('<div class="post-divider"></div>', unsafe_allow_html=True)
+        st.markdown('<div class="stories-divider"></div>', unsafe_allow_html=True)
 
+        # Scrollable Posts Feed
+        for post in st.session_state.posts:
+            pid = post["id"]
 
-# ==============================================================================
-# 6. TAB 2: WORD LEMMATISER (Search Icon in Bottom Bar)
-# ==============================================================================
-elif st.session_state.active_tab == "word":
-    st.markdown('<div style="font-size:16px; font-weight:700; margin:10px 0 4px 0;">Word Lemmatiser</div>', unsafe_allow_html=True)
-    st.caption("Enter any Malay, English, or Bahasa Rojak word to get its root form.")
-    word_input = st.text_input("Search word", placeholder="e.g., xleh, laparrrr, makan2, running", label_visibility="collapsed")
-    if word_input and word_input.strip():
-        root = lemmatise_word(word_input)
-        st.markdown(
-            f'<div class="lemma-output" style="text-align:center; padding:16px;">'
-            f'<span style="font-size:18px; font-weight:700;">{word_input.strip()}</span>'
-            f'<span style="font-size:18px; margin:0 10px;">➔</span>'
-            f'<span style="font-size:18px; font-weight:700; color:#0095F6;">{root}</span>'
-            f'<div style="font-size:11px; color:#737373; margin-top:4px;">Root Form (Lemma)</div></div>',
-            unsafe_allow_html=True,
-        )
+            # Post Header
+            header_html = (
+                f'<div class="post-header">'
+                f'<div class="post-user-info">'
+                f'<div class="post-avatar">{post["avatar"]}</div>'
+                f'<div><div class="post-username">{post["username"]}</div>'
+                f'<div class="post-location">{post["location"]}</div></div></div>'
+                f'<div style="color:#000; font-weight:700; font-size:16px;">⋯</div></div>'
+            )
+            st.markdown(header_html, unsafe_allow_html=True)
 
+            # Post Image
+            if os.path.exists(post["image"]):
+                st.image(post["image"], use_container_width=True)
+            else:
+                placeholder_html = (
+                    f'<div class="img-placeholder">'
+                    f'<div style="font-size:14px; font-weight:600; color:#555;">Photo Placeholder</div>'
+                    f'<div style="font-size:11px; margin-top:4px;">Put your photo at: <code>{post["image"]}</code></div>'
+                    f'</div>'
+                )
+                st.markdown(placeholder_html, unsafe_allow_html=True)
 
-# ==============================================================================
-# 7. TAB 3: CREATE POST (+ Icon in Top Left)
-# ==============================================================================
-elif st.session_state.active_tab == "create":
-    st.markdown('<div style="font-size:16px; font-weight:700; margin:10px 0 4px 0;">New Post</div>', unsafe_allow_html=True)
-    with st.form("new_post_form"):
-        username = st.text_input("Username", value="malaysia_student")
-        location = st.text_input("Location", value="Kuala Lumpur, Malaysia")
-        caption = st.text_area("Write a caption...", placeholder="Type a Bahasa Rojak caption...")
-        uploaded_img = st.file_uploader("Upload Photo (optional)", type=["jpg", "jpeg", "png"])
-        if st.form_submit_button("Share") and caption.strip():
-            new_id = max(p["id"] for p in st.session_state.posts) + 1
-            img_path = "images/post1.jpg"
-            if uploaded_img is not None:
-                os.makedirs("images", exist_ok=True)
-                img_path = f"images/custom_{new_id}.jpg"
-                with open(img_path, "wb") as f:
-                    f.write(uploaded_img.getbuffer())
-            st.session_state.posts.insert(0, {
-                "id": new_id,
-                "username": username.strip() or "guest",
-                "avatar": (username.strip()[:2] or "GU").upper(),
-                "location": location.strip() or "Malaysia",
-                "image": img_path,
-                "caption": caption.strip(),
-                "likes": 1,
-                "liked": False,
-                "reposts": 0,
-                "shares": 0,
-                "saved": False,
-                "show_lemma": False,
-                "show_comments": False,
-                "time": "Just now",
-                "comments": [],
-            })
+            # Action Bar
+            a1, a2, a3, a4, spacer, a5 = st.columns([0.95, 0.72, 0.72, 0.85, 2.0, 0.45], gap="small")
+            with a1:
+                like_key = f"liked_{pid}" if post["liked"] else f"unliked_{pid}"
+                if st.button(f"{post['likes']}", icon=":material/favorite:", key=like_key):
+                    post["liked"] = not post["liked"]
+                    post["likes"] += 1 if post["liked"] else -1
+                    st.rerun()
+            with a2:
+                if st.button(f"{len(post['comments'])}", icon=":material/chat_bubble:", key=f"cm_btn_{pid}"):
+                    post["show_comments"] = not post["show_comments"]
+                    st.rerun()
+            with a3:
+                if st.button(f"{post['reposts']}", icon=":material/repeat:", key=f"repost_{pid}"):
+                    post["reposts"] += 1
+                    st.rerun()
+            with a4:
+                st.button(f"{post['shares']}", icon=":material/send:", key=f"share_{pid}")
+            with a5:
+                save_key = f"saved_{pid}" if post["saved"] else f"unsaved_{pid}"
+                if st.button("", icon=":material/bookmark:", key=save_key):
+                    post["saved"] = not post["saved"]
+                    st.rerun()
+
+            # Caption
+            st.markdown(
+                f'<div class="post-caption"><b>{post["username"]}</b> {post["caption"]}</div>',
+                unsafe_allow_html=True,
+            )
+
+            # Combined "5 hours ago · Lemmatise"
+            action_word = "See Original" if post["show_lemma"] else "Lemmatise"
+            if st.button(f"{post['time']} · {action_word}", key=f"lemma_post_{pid}"):
+                post["show_lemma"] = not post["show_lemma"]
+                st.rerun()
+
+            # Lemmatised Output
+            if post["show_lemma"]:
+                lemma_res = lemmatise_sentence(post["caption"])
+                st.markdown(
+                    f'<div class="lemma-output"><div class="lemma-tag">Lemmatised</div>{lemma_res}</div>',
+                    unsafe_allow_html=True,
+                )
+
+            # Comments Section
+            if post["show_comments"]:
+                st.markdown('<div style="font-size:12px; font-weight:600; color:#737373; margin:6px 0;">Comments</div>', unsafe_allow_html=True)
+                for idx, cm in enumerate(post["comments"]):
+                    c_txt, c_btn = st.columns([3.4, 1.1], gap="small")
+                    with c_txt:
+                        st.markdown(
+                            f'<div style="font-size:13px; color:#000; padding-top:2px;"><b>{cm["user"]}</b> {cm["text"]}</div>',
+                            unsafe_allow_html=True,
+                        )
+                    with c_btn:
+                        cm_label = "Hide" if cm["show_lemma"] else "Lemmatise"
+                        if st.button(cm_label, key=f"cm_lem_{pid}_{idx}"):
+                            cm["show_lemma"] = not cm["show_lemma"]
+                            st.rerun()
+                    if cm["show_lemma"]:
+                        cm_lemma = lemmatise_sentence(cm["text"])
+                        st.markdown(
+                            f'<div class="lemma-output"><div class="lemma-tag">Lemmatised</div>{cm_lemma}</div>',
+                            unsafe_allow_html=True,
+                        )
+
+                with st.form(key=f"add_cm_{pid}", clear_on_submit=True):
+                    new_cm = st.text_input("Comment", placeholder="Add a comment...", label_visibility="collapsed")
+                    if st.form_submit_button("Post") and new_cm.strip():
+                        post["comments"].append({"user": "you_demo", "text": new_cm.strip(), "show_lemma": False})
+                        st.rerun()
+
+            st.markdown('<div class="post-divider"></div>', unsafe_allow_html=True)
+
+    # --- TAB 2: WORD LEMMATISER ---
+    elif st.session_state.active_tab == "word":
+        st.markdown('<div style="font-size:16px; font-weight:700; margin:10px 0 4px 0;">Word Lemmatiser</div>', unsafe_allow_html=True)
+        st.caption("Enter any Malay, English, or Bahasa Rojak word to get its root form.")
+        word_input = st.text_input("Search word", placeholder="e.g., xleh, laparrrr, makan2, running", label_visibility="collapsed")
+        if word_input and word_input.strip():
+            root = lemmatise_word(word_input)
+            st.markdown(
+                f'<div class="lemma-output" style="text-align:center; padding:16px;">'
+                f'<span style="font-size:18px; font-weight:700;">{word_input.strip()}</span>'
+                f'<span style="font-size:18px; margin:0 10px;">➔</span>'
+                f'<span style="font-size:18px; font-weight:700; color:#0095F6;">{root}</span>'
+                f'<div style="font-size:11px; color:#737373; margin-top:4px;">Root Form (Lemma)</div></div>',
+                unsafe_allow_html=True,
+            )
+
+    # --- TAB 3: CREATE POST ---
+    elif st.session_state.active_tab == "create":
+        st.markdown('<div style="font-size:16px; font-weight:700; margin:10px 0 4px 0;">New Post</div>', unsafe_allow_html=True)
+        with st.form("new_post_form"):
+            username = st.text_input("Username", value="malaysia_student")
+            location = st.text_input("Location", value="Kuala Lumpur, Malaysia")
+            caption = st.text_area("Write a caption...", placeholder="Type a Bahasa Rojak caption...")
+            uploaded_img = st.file_uploader("Upload Photo (optional)", type=["jpg", "jpeg", "png"])
+            if st.form_submit_button("Share") and caption.strip():
+                new_id = max(p["id"] for p in st.session_state.posts) + 1
+                img_path = "images/post1.jpg"
+                if uploaded_img is not None:
+                    os.makedirs("images", exist_ok=True)
+                    img_path = f"images/custom_{new_id}.jpg"
+                    with open(img_path, "wb") as f:
+                        f.write(uploaded_img.getbuffer())
+                st.session_state.posts.insert(0, {
+                    "id": new_id,
+                    "username": username.strip() or "guest",
+                    "avatar": (username.strip()[:2] or "GU").upper(),
+                    "location": location.strip() or "Malaysia",
+                    "image": img_path,
+                    "caption": caption.strip(),
+                    "likes": 1,
+                    "liked": False,
+                    "reposts": 0,
+                    "shares": 0,
+                    "saved": False,
+                    "show_lemma": False,
+                    "show_comments": False,
+                    "time": "Just now",
+                    "comments": [],
+                })
+                st.session_state.active_tab = "home"
+                st.rerun()
+
+    # --- INSTAGRAM BOTTOM NAVIGATION BAR ---
+    st.markdown('<div class="bottom-nav-line"></div>', unsafe_allow_html=True)
+    b1, b2, b3, b4, b5 = st.columns(5, gap="small")
+    with b1:
+        if st.button("", icon=":material/home:", key="nav_home", help="Home", use_container_width=True):
             st.session_state.active_tab = "home"
             st.rerun()
-
-
-# ==============================================================================
-# 8. INSTAGRAM BOTTOM NAVIGATION BAR (All 5 Unified, Borderless, Centered)
-# ==============================================================================
-st.markdown('<div class="bottom-nav-line"></div>', unsafe_allow_html=True)
-b1, b2, b3, b4, b5 = st.columns(5, gap="small")
-with b1:
-    if st.button("", icon=":material/home:", key="nav_home", help="Home", use_container_width=True):
-        st.session_state.active_tab = "home"
-        st.rerun()
-with b2:
-    st.button("", icon=":material/smart_display:", key="nav_reels", help="Reels", use_container_width=True)
-with b3:
-    st.button("", icon=":material/send:", key="nav_dm", help="Messages", use_container_width=True)
-with b4:
-    if st.button("", icon=":material/search:", key="nav_word", help="Word Lemmatiser", use_container_width=True):
-        st.session_state.active_tab = "word"
-        st.rerun()
-with b5:
-    st.button("", icon=":material/person:", key="nav_profile", help="Profile", use_container_width=True)
+    with b2:
+        st.button("", icon=":material/smart_display:", key="nav_reels", help="Reels", use_container_width=True)
+    with b3:
+        st.button("", icon=":material/send:", key="nav_dm", help="Messages", use_container_width=True)
+    with b4:
+        if st.button("", icon=":material/search:", key="nav_word", help="Word Lemmatiser", use_container_width=True):
+            st.session_state.active_tab = "word"
+            st.rerun()
+    with b5:
+        st.button("", icon=":material/person:", key="nav_profile", help="Profile", use_container_width=True)
