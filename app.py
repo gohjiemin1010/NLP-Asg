@@ -363,17 +363,16 @@ if st.session_state.active_tab == "home":
         ("aisyah", "AY"),
         ("tarumt", "TR"),
     ]
-    stories_html = '<div class="stories-row">'
+stories_html = '<div class="stories-row">'
     for name, initials in stories:
-        stories_html += f"""
-        <div class="story-item">
-            <div class="story-ring"><div class="story-inner">{initials}</div></div>
-            <div class="story-name">{name}</div>
-        </div>
-        """
-    stories_html += "</div>"
+        stories_html += (
+            f'<div class="story-item">'
+            f'<div class="story-ring"><div class="story-inner">{initials}</div></div>'
+            f'<div class="story-name">{name}</div>'
+            f'</div>'
+        )
+    stories_html += '</div>'
     st.markdown(stories_html, unsafe_allow_html=True)
-
     # Scrollable Posts Feed
     for post in st.session_state.posts:
         pid = post["id"]
