@@ -51,62 +51,55 @@ div[data-testid="stHorizontalBlock"] {
     align-items: center !important;
 }
 
-/* Instagram Top Header */
+/* Instagram Top Header (加底部间距，彻底解决字母 g 和头像重叠) */
 .ig-logo {
     font-family: 'Grand Hotel', cursive;
     font-size: 32px;
     font-weight: 400;
     color: #000000;
     text-align: center;
-    line-height: 1.1;
+    line-height: 1.2;
     margin-top: 2px;
+    margin-bottom: 14px;
 }
 
-/* Clickable Stories Bar */
-.story-ring-wrap {
-    display: flex;
-    justify-content: center;
-    margin-bottom: 2px;
+/* Clickable Story Circle Buttons */
+div[class*="st-key-story_btn_"] {
+    display: flex !important;
+    justify-content: center !important;
 }
-.story-ring {
-    width: 58px;
-    height: 58px;
-    border-radius: 50%;
-    padding: 2.5px;
-    background: linear-gradient(45deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    position: relative;
+div[class*="st-key-story_btn_"] button {
+    width: 58px !important;
+    height: 58px !important;
+    min-width: 58px !important;
+    min-height: 58px !important;
+    border-radius: 50% !important;
+    padding: 0 !important;
+    font-size: 15px !important;
+    font-weight: 600 !important;
+    color: #333333 !important;
+    background: linear-gradient(#F4F4F4, #F4F4F4) padding-box,
+                linear-gradient(45deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%) border-box !important;
+    border: 2.5px solid transparent !important;
+    box-shadow: inset 0 0 0 2.5px #FFFFFF !important;
+    position: relative !important;
+    overflow: visible !important;
 }
-.story-ring-plain {
-    width: 58px;
-    height: 58px;
-    border-radius: 50%;
-    padding: 2px;
-    background: #E0E0E0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    position: relative;
+div[class*="st-key-story_btn_"] button:hover {
+    transform: scale(1.04);
+    color: #000000 !important;
 }
-.story-inner {
-    width: 100%;
-    height: 100%;
-    border-radius: 50%;
-    background-color: #F4F4F4;
-    border: 2.5px solid #FFFFFF;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-weight: 600;
-    font-size: 15px;
-    color: #333333;
+
+/* First Circle ("Your story"): Grey ring + black '+' badge */
+div.st-key-story_btn_0 button {
+    background: linear-gradient(#F4F4F4, #F4F4F4) padding-box,
+                linear-gradient(#E0E0E0, #E0E0E0) border-box !important;
 }
-.story-plus-badge {
+div.st-key-story_btn_0 button::after {
+    content: "+";
     position: absolute;
-    bottom: 0px;
-    right: 0px;
+    bottom: -2px;
+    right: -2px;
     width: 19px;
     height: 19px;
     border-radius: 50%;
@@ -120,9 +113,20 @@ div[data-testid="stHorizontalBlock"] {
     justify-content: center;
     line-height: 1;
 }
+
+/* Story Name (Plain text below circle) */
+.story-name {
+    font-size: 11px;
+    color: #262626;
+    text-align: center;
+    margin-top: 4px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
 .stories-divider {
     border-bottom: 1px solid #EFEFEF;
-    margin: 4px 0 10px 0;
+    margin: 8px 0 10px 0;
 }
 
 /* Story Name Clickable Button */
@@ -598,23 +602,11 @@ else:
         s_cols = st.columns(5, gap="small")
         for idx, s in enumerate(st.session_state.stories):
             with s_cols[idx]:
-                if s["is_you"]:
-                    ring_html = (
-                        f'<div class="story-ring-wrap"><div class="story-ring-plain">'
-                        f'<div class="story-inner">{s["initials"]}</div>'
-                        f'<div class="story-plus-badge">+</div></div></div>'
-                    )
-                else:
-                    ring_html = (
-                        f'<div class="story-ring-wrap"><div class="story-ring">'
-                        f'<div class="story-inner">{s["initials"]}</div></div></div>'
-                    )
-                st.markdown(ring_html, unsafe_allow_html=True)
-                if st.button(s["name"], key=f"story_btn_{s['id']}", use_container_width=True):
+               if st.button(s["initials"], key=f"story_btn_{s['id']}"):
                     st.session_state.active_story_id = s["id"]
                     st.session_state.active_tab = "story"
                     st.rerun()
-
+                st.markdown(f'<div class="story-name">{s["name"]}</div>', unsafe_allow_html=True)
         st.markdown('<div class="stories-divider"></div>', unsafe_allow_html=True)
 
         # Scrollable Posts Feed
