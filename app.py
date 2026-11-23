@@ -32,9 +32,15 @@ header {visibility: hidden;}
     border: 1px solid #DBDBDB;
     border-radius: 30px;
     box-shadow: 0 12px 35px rgba(0, 0, 0, 0.08);
-    padding: 12px 14px 18px 14px !important;
+    padding: 12px 14px 16px 14px !important;
     margin-top: 16px !important;
     margin-bottom: 24px !important;
+}
+
+/* Reduce default horizontal gap between Streamlit columns */
+div[data-testid="stHorizontalBlock"] {
+    gap: 0.25rem !important;
+    align-items: center !important;
 }
 
 /* Instagram Top Header */
@@ -175,12 +181,12 @@ header {visibility: hidden;}
     margin-bottom: 6px;
 }
 
-/* Caption & Lemmatise Box */
+/* Caption & Lemmatise Output Box */
 .post-caption {
     font-size: 13.5px;
     line-height: 1.45;
     color: #000000;
-    margin: 2px 0 4px 0;
+    margin: 2px 0 2px 0;
 }
 .lemma-output {
     background-color: #F8F9FA;
@@ -202,26 +208,35 @@ header {visibility: hidden;}
 }
 .post-divider {
     border-bottom: 1px solid #EFEFEF;
-    margin: 10px 0 12px 0;
+    margin: 8px 0 12px 0;
 }
 
-/* Clean Borderless IG Buttons + Crisp Vector Icons */
-div.stButton > button {
+/* Force ALL Streamlit buttons to be 100% borderless & transparent */
+div.stButton > button,
+button[data-testid="stBaseButton-secondary"] {
     background-color: transparent !important;
     border: none !important;
     box-shadow: none !important;
+    outline: none !important;
     color: #000000 !important;
     padding: 2px 2px !important;
     font-size: 13.5px !important;
     font-weight: 600 !important;
     min-height: 0px !important;
     height: auto !important;
-    gap: 4px !important;
+    gap: 3px !important;
 }
-div.stButton > button:hover {
-    color: #737373 !important;
+div.stButton > button:hover,
+button[data-testid="stBaseButton-secondary"]:hover,
+div.stButton > button:focus,
+button[data-testid="stBaseButton-secondary"]:focus {
     background-color: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    color: #737373 !important;
 }
+
+/* Action Bar Icons Size */
 div.stButton > button span[data-testid="stIconMaterial"] {
     font-size: 22px !important;
     font-weight: 300 !important;
@@ -239,25 +254,34 @@ div[class*="st-key-saved_"] button span[data-testid="stIconMaterial"] {
     font-variation-settings: 'FILL' 1 !important;
 }
 
-/* Lemmatise text link style */
+/* Timestamp + Lemmatise Inline Link (exact same size & color) */
 div[class*="st-key-lemma_post_"] button {
     font-size: 12px !important;
-    font-weight: 600 !important;
+    font-weight: 400 !important;
+    color: #737373 !important;
+    padding: 0px !important;
+    justify-content: flex-start !important;
+}
+div[class*="st-key-lemma_post_"] button:hover {
     color: #262626 !important;
-    padding-top: 3px !important;
 }
 
-/* Bottom Navigation Bar */
+/* Bottom Navigation Bar: All 5 icons identical size & perfectly aligned */
 .bottom-nav-line {
     border-top: 1px solid #DBDBDB;
-    margin-top: 10px;
+    margin-top: 8px;
     padding-top: 8px;
 }
-.nav-svg-box {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    padding-top: 4px;
+div[class*="st-key-nav_"] button {
+    width: 100% !important;
+    display: flex !important;
+    justify-content: center !important;
+    align-items: center !important;
+    padding: 4px 0 !important;
+}
+div[class*="st-key-nav_"] button span[data-testid="stIconMaterial"] {
+    font-size: 26px !important;
+    color: #000000 !important;
 }
 </style>
 """, unsafe_allow_html=True)
@@ -295,7 +319,7 @@ def lemmatise_sentence(text: str) -> str:
 
 
 # ==============================================================================
-# 3. SESSION STATE (With automatic schema reset guard)
+# 3. SESSION STATE
 # ==============================================================================
 if "active_tab" not in st.session_state:
     st.session_state.active_tab = "home"
@@ -375,7 +399,7 @@ with t2:
     st.markdown('<div class="ig-logo">Instagram</div>', unsafe_allow_html=True)
 with t3:
     heart_svg = (
-        '<div style="display:flex; justify-content:flex-end; padding-top:6px;">'
+        '<div style="display:flex; justify-content:flex-end; padding-top:4px;">'
         '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#000000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">'
         '<path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>'
         '</svg></div>'
@@ -440,8 +464,8 @@ if st.session_state.active_tab == "home":
             )
             st.markdown(placeholder_html, unsafe_allow_html=True)
 
-        # Action Bar (Authentic IG layout: 4 icons tight on left, spacer, bookmark on far right)
-        a1, a2, a3, a4, spacer, a5 = st.columns([1.2, 0.9, 0.9, 1.0, 1.3, 0.6])
+        # Action Bar (Tight spacing on the left, Bookmark pushed to far right)
+        a1, a2, a3, a4, spacer, a5 = st.columns([0.95, 0.72, 0.72, 0.85, 2.0, 0.45], gap="small")
         with a1:
             like_key = f"liked_{pid}" if post["liked"] else f"unliked_{pid}"
             if st.button(f"{post['likes']}", icon=":material/favorite:", key=like_key):
@@ -470,18 +494,11 @@ if st.session_state.active_tab == "home":
             unsafe_allow_html=True,
         )
 
-        # Timestamp + "Lemmatise" button
-        meta_c1, meta_c2 = st.columns([1.15, 2.5])
-        with meta_c1:
-            st.markdown(
-                f'<div style="font-size:12px; color:#737373; padding-top:4px;">{post["time"]} ·</div>',
-                unsafe_allow_html=True,
-            )
-        with meta_c2:
-            btn_label = "See Original" if post["show_lemma"] else "Lemmatise"
-            if st.button(btn_label, key=f"lemma_post_{pid}"):
-                post["show_lemma"] = not post["show_lemma"]
-                st.rerun()
+        # Combined "1 day ago · Lemmatise" inline button (exact same font size & color)
+        action_word = "See Original" if post["show_lemma"] else "Lemmatise"
+        if st.button(f"{post['time']} · {action_word}", key=f"lemma_post_{pid}"):
+            post["show_lemma"] = not post["show_lemma"]
+            st.rerun()
 
         # Lemmatised Output
         if post["show_lemma"]:
@@ -495,10 +512,10 @@ if st.session_state.active_tab == "home":
         if post["show_comments"]:
             st.markdown('<div style="font-size:12px; font-weight:600; color:#737373; margin:6px 0;">Comments</div>', unsafe_allow_html=True)
             for idx, cm in enumerate(post["comments"]):
-                c_txt, c_btn = st.columns([3.2, 1.2])
+                c_txt, c_btn = st.columns([3.4, 1.1], gap="small")
                 with c_txt:
                     st.markdown(
-                        f'<div style="font-size:13px; color:#000; padding-top:3px;"><b>{cm["user"]}</b> {cm["text"]}</div>',
+                        f'<div style="font-size:13px; color:#000; padding-top:2px;"><b>{cm["user"]}</b> {cm["text"]}</div>',
                         unsafe_allow_html=True,
                     )
                 with c_btn:
@@ -581,36 +598,21 @@ elif st.session_state.active_tab == "create":
 
 
 # ==============================================================================
-# 8. INSTAGRAM BOTTOM NAVIGATION BAR (Crisp Vector Icons)
+# 8. INSTAGRAM BOTTOM NAVIGATION BAR (All 5 Unified, Borderless, Same Size)
 # ==============================================================================
 st.markdown('<div class="bottom-nav-line"></div>', unsafe_allow_html=True)
-b1, b2, b3, b4, b5 = st.columns(5)
+b1, b2, b3, b4, b5 = st.columns(5, gap="small")
 with b1:
-    if st.button("", icon=":material/home:", key="nav_home", help="Home", use_container_width=True):
+    if st.button("", icon=":material/home:", key="nav_home", help="Home"):
         st.session_state.active_tab = "home"
         st.rerun()
 with b2:
-    reels_svg = (
-        '<div class="nav-svg-box"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">'
-        '<rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect>'
-        '<polygon points="10 8 16 12 10 16 10 8" fill="#000"></polygon></svg></div>'
-    )
-    st.markdown(reels_svg, unsafe_allow_html=True)
+    st.button("", icon=":material/smart_display:", key="nav_reels", help="Reels")
 with b3:
-    dm_svg = (
-        '<div class="nav-svg-box"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">'
-        '<line x1="22" y1="2" x2="11" y2="13"></line>'
-        '<polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg></div>'
-    )
-    st.markdown(dm_svg, unsafe_allow_html=True)
+    st.button("", icon=":material/send:", key="nav_dm", help="Messages")
 with b4:
-    if st.button("", icon=":material/search:", key="nav_word", help="Word Lemmatiser", use_container_width=True):
+    if st.button("", icon=":material/search:", key="nav_word", help="Word Lemmatiser"):
         st.session_state.active_tab = "word"
         st.rerun()
 with b5:
-    profile_svg = (
-        '<div class="nav-svg-box"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">'
-        '<path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>'
-        '<circle cx="12" cy="7" r="4"></circle></svg></div>'
-    )
-    st.markdown(profile_svg, unsafe_allow_html=True)
+    st.button("", icon=":material/person:", key="nav_profile", help="Profile")
