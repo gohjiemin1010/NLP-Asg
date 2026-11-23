@@ -596,17 +596,19 @@ else:
         )
         st.markdown(heart_svg, unsafe_allow_html=True)
 
-    # --- TAB 1: HOME FEED ---
+
+        # --- TAB 1: HOME FEED ---
     if st.session_state.active_tab == "home":
-        # Clickable IG Stories Row (5 circles across)
+        # Clickable IG Stories Row (Click the avatar circle itself!)
         s_cols = st.columns(5, gap="small")
         for idx, s in enumerate(st.session_state.stories):
             with s_cols[idx]:
-               if st.button(s["initials"], key=f"story_btn_{s['id']}"):
+                if st.button(s["initials"], key=f"story_btn_{s['id']}"):
                     st.session_state.active_story_id = s["id"]
                     st.session_state.active_tab = "story"
                     st.rerun()
                 st.markdown(f'<div class="story-name">{s["name"]}</div>', unsafe_allow_html=True)
+
         st.markdown('<div class="stories-divider"></div>', unsafe_allow_html=True)
 
         # Scrollable Posts Feed
