@@ -598,21 +598,21 @@ elif st.session_state.active_tab == "create":
 
 
 # ==============================================================================
-# 8. INSTAGRAM BOTTOM NAVIGATION BAR (All 5 Unified, Borderless, Same Size)
+# 8. INSTAGRAM BOTTOM NAVIGATION BAR (All 5 Unified, Borderless, Centered)
 # ==============================================================================
 st.markdown('<div class="bottom-nav-line"></div>', unsafe_allow_html=True)
 b1, b2, b3, b4, b5 = st.columns(5, gap="small")
 with b1:
-    if st.button("", icon=":material/home:", key="nav_home", help="Home"):
+    if st.button("", icon=":material/home:", key="nav_home", help="Home", use_container_width=True):
         st.session_state.active_tab = "home"
         st.rerun()
 with b2:
-    st.button("", icon=":material/smart_display:", key="nav_reels", help="Reels")
+    st.button("", icon=":material/smart_display:", key="nav_reels", help="Reels", use_container_width=True)
 with b3:
-    st.button("", icon=":material/send:", key="nav_dm", help="Messages")
+    st.button("", icon=":material/send:", key="nav_dm", help="Messages", use_container_width=True)
 with b4:
-    if st.button("", icon=":material/search:", key="nav_word", help="Word Lemmatiser"):
+    if st.button("", icon=":material/search:", key="nav_word", help="Word Lemmatiser", use_container_width=True):
         st.session_state.active_tab = "word"
         st.rerun()
 with b5:
-    st.button("", icon=":material/person:", key="nav_profile", help="Profile")
+    st.button("", icon=":material/person:", key="nav_profile", help="Profile", use_container_width=True)
