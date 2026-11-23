@@ -319,6 +319,34 @@ div[class*="st-key-nav_"] button span[data-testid="stIconMaterial"] {
     font-size: 26px !important;
     color: #000000 !important;
 }
+div[class*="st-key-story_btn_"] {
+    display: flex !important;
+    justify-content: center !important;
+}
+div[class*="st-key-story_btn_"] button[data-testid="stBaseButton-secondary"] {
+    width: 58px !important;
+    height: 58px !important;
+    min-width: 58px !important;
+    min-height: 58px !important;
+    max-width: 58px !important;
+    max-height: 58px !important;
+    aspect-ratio: 1 / 1 !important;
+    border-radius: 50% !important;
+    padding: 0 !important;
+    font-size: 15px !important;
+    font-weight: 600 !important;
+    color: #333333 !important;
+    background: linear-gradient(#F4F4F4, #F4F4F4) padding-box,
+                linear-gradient(45deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%) border-box !important;
+    border: 2.5px solid transparent !important;
+    box-shadow: inset 0 0 0 2.5px #FFFFFF !important;
+    position: relative !important;
+    overflow: visible !important;
+}
+div.st-key-story_btn_0 button[data-testid="stBaseButton-secondary"] {
+    background: linear-gradient(#F4F4F4, #F4F4F4) padding-box,
+                linear-gradient(#D8D8D8, #D8D8D8) border-box !important;
+}
 </style>
 """, unsafe_allow_html=True)
 
