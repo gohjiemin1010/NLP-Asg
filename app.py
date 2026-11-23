@@ -32,7 +32,7 @@ header {visibility: hidden;}
     border: 1px solid #DBDBDB;
     border-radius: 30px;
     box-shadow: 0 12px 35px rgba(0, 0, 0, 0.08);
-    padding: 12px 14px 20px 14px !important;
+    padding: 12px 14px 18px 14px !important;
     margin-top: 16px !important;
     margin-bottom: 24px !important;
 }
@@ -205,28 +205,59 @@ header {visibility: hidden;}
     margin: 10px 0 12px 0;
 }
 
-/* Make Streamlit buttons look like clean borderless IG icons / text links */
+/* Clean Borderless IG Buttons + Crisp Vector Icons */
 div.stButton > button {
     background-color: transparent !important;
     border: none !important;
     box-shadow: none !important;
     color: #000000 !important;
-    padding: 2px 4px !important;
-    font-size: 14px !important;
+    padding: 2px 2px !important;
+    font-size: 13.5px !important;
     font-weight: 600 !important;
     min-height: 0px !important;
     height: auto !important;
+    gap: 4px !important;
 }
 div.stButton > button:hover {
     color: #737373 !important;
     background-color: transparent !important;
 }
+div.stButton > button span[data-testid="stIconMaterial"] {
+    font-size: 22px !important;
+    font-weight: 300 !important;
+}
 
-/* Bottom Navigation Bar Divider */
+/* Filled Red Heart when Liked */
+div[class*="st-key-liked_"] button span[data-testid="stIconMaterial"] {
+    color: #FF3040 !important;
+    font-variation-settings: 'FILL' 1 !important;
+}
+
+/* Filled Black Bookmark when Saved */
+div[class*="st-key-saved_"] button span[data-testid="stIconMaterial"] {
+    color: #000000 !important;
+    font-variation-settings: 'FILL' 1 !important;
+}
+
+/* Lemmatise text link style */
+div[class*="st-key-lemma_post_"] button {
+    font-size: 12px !important;
+    font-weight: 600 !important;
+    color: #262626 !important;
+    padding-top: 3px !important;
+}
+
+/* Bottom Navigation Bar */
 .bottom-nav-line {
     border-top: 1px solid #DBDBDB;
     margin-top: 10px;
-    padding-top: 6px;
+    padding-top: 8px;
+}
+.nav-svg-box {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding-top: 4px;
 }
 </style>
 """, unsafe_allow_html=True)
@@ -264,12 +295,13 @@ def lemmatise_sentence(text: str) -> str:
 
 
 # ==============================================================================
-# 3. SESSION STATE
+# 3. SESSION STATE (With automatic schema reset guard)
 # ==============================================================================
 if "active_tab" not in st.session_state:
     st.session_state.active_tab = "home"
 
-if "posts" not in st.session_state or "reposts" not in st.session_state.posts[0]:    st.session_state.posts = [
+if "posts" not in st.session_state or "reposts" not in st.session_state.posts[0]:
+    st.session_state.posts = [
         {
             "id": 1,
             "username": "jiemin_eats",
@@ -336,20 +368,25 @@ if "posts" not in st.session_state or "reposts" not in st.session_state.posts[0]
 # ==============================================================================
 t1, t2, t3 = st.columns([1, 4, 1])
 with t1:
-    if st.button("＋", key="top_plus", help="Create Post"):
+    if st.button("", icon=":material/add:", key="top_plus", help="Create Post"):
         st.session_state.active_tab = "create"
         st.rerun()
 with t2:
     st.markdown('<div class="ig-logo">Instagram</div>', unsafe_allow_html=True)
 with t3:
-    st.markdown('<div style="text-align:right; font-size:22px; padding-top:4px; color:#000;">♡</div>', unsafe_allow_html=True)
+    heart_svg = (
+        '<div style="display:flex; justify-content:flex-end; padding-top:6px;">'
+        '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#000000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">'
+        '<path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>'
+        '</svg></div>'
+    )
+    st.markdown(heart_svg, unsafe_allow_html=True)
 
 
 # ==============================================================================
 # 5. TAB 1: HOME FEED
 # ==============================================================================
 if st.session_state.active_tab == "home":
-    # Purely decorative IG Stories bar (no indentation = no code-block bug!)
     stories = [
         ("Your story", "JM", True),
         ("britnchan", "BC", False),
@@ -397,34 +434,33 @@ if st.session_state.active_tab == "home":
         else:
             placeholder_html = (
                 f'<div class="img-placeholder">'
-                f'<div style="font-size:26px; margin-bottom:4px;">🖼️</div>'
-                f'<div><b>Photo Placeholder</b></div>'
+                f'<div style="font-size:14px; font-weight:600; color:#555;">Photo Placeholder</div>'
                 f'<div style="font-size:11px; margin-top:4px;">Put your photo at: <code>{post["image"]}</code></div>'
                 f'</div>'
             )
             st.markdown(placeholder_html, unsafe_allow_html=True)
 
-        # Action Bar (Like, Comment, Repost, Share, Bookmark — matching IG layout)
-        a1, a2, a3, a4, a5 = st.columns([1.3, 1.1, 1.1, 1.2, 1.0])
+        # Action Bar (Authentic IG layout: 4 icons tight on left, spacer, bookmark on far right)
+        a1, a2, a3, a4, spacer, a5 = st.columns([1.2, 0.9, 0.9, 1.0, 1.3, 0.6])
         with a1:
-            heart_icon = "❤️" if post["liked"] else "♡"
-            if st.button(f"{heart_icon} {post['likes']}", key=f"like_{pid}"):
+            like_key = f"liked_{pid}" if post["liked"] else f"unliked_{pid}"
+            if st.button(f"{post['likes']}", icon=":material/favorite:", key=like_key):
                 post["liked"] = not post["liked"]
                 post["likes"] += 1 if post["liked"] else -1
                 st.rerun()
         with a2:
-            if st.button(f"💬 {len(post['comments'])}", key=f"cm_btn_{pid}"):
+            if st.button(f"{len(post['comments'])}", icon=":material/chat_bubble:", key=f"cm_btn_{pid}"):
                 post["show_comments"] = not post["show_comments"]
                 st.rerun()
         with a3:
-            if st.button(f"⇄ {post['reposts']}", key=f"repost_{pid}"):
+            if st.button(f"{post['reposts']}", icon=":material/repeat:", key=f"repost_{pid}"):
                 post["reposts"] += 1
                 st.rerun()
         with a4:
-            st.button(f"➤ {post['shares']}", key=f"share_{pid}")
+            st.button(f"{post['shares']}", icon=":material/send:", key=f"share_{pid}")
         with a5:
-            bm_icon = "🔖" if post["saved"] else "🏷️"
-            if st.button(bm_icon, key=f"save_{pid}"):
+            save_key = f"saved_{pid}" if post["saved"] else f"unsaved_{pid}"
+            if st.button("", icon=":material/bookmark:", key=save_key):
                 post["saved"] = not post["saved"]
                 st.rerun()
 
@@ -434,8 +470,8 @@ if st.session_state.active_tab == "home":
             unsafe_allow_html=True,
         )
 
-        # Timestamp + "Lemmatise" button (replacing IG's "See translation")
-        meta_c1, meta_c2 = st.columns([1.1, 2.5])
+        # Timestamp + "Lemmatise" button
+        meta_c1, meta_c2 = st.columns([1.15, 2.5])
         with meta_c1:
             st.markdown(
                 f'<div style="font-size:12px; color:#737373; padding-top:4px;">{post["time"]} ·</div>',
@@ -447,7 +483,7 @@ if st.session_state.active_tab == "home":
                 post["show_lemma"] = not post["show_lemma"]
                 st.rerun()
 
-        # Show Lemmatised Output when clicked
+        # Lemmatised Output
         if post["show_lemma"]:
             lemma_res = lemmatise_sentence(post["caption"])
             st.markdown(
@@ -455,7 +491,7 @@ if st.session_state.active_tab == "home":
                 unsafe_allow_html=True,
             )
 
-        # Comments Section (toggled by clicking the comment icon)
+        # Comments Section
         if post["show_comments"]:
             st.markdown('<div style="font-size:12px; font-weight:600; color:#737373; margin:6px 0;">Comments</div>', unsafe_allow_html=True)
             for idx, cm in enumerate(post["comments"]):
@@ -545,21 +581,36 @@ elif st.session_state.active_tab == "create":
 
 
 # ==============================================================================
-# 8. INSTAGRAM BOTTOM NAVIGATION BAR
+# 8. INSTAGRAM BOTTOM NAVIGATION BAR (Crisp Vector Icons)
 # ==============================================================================
 st.markdown('<div class="bottom-nav-line"></div>', unsafe_allow_html=True)
 b1, b2, b3, b4, b5 = st.columns(5)
 with b1:
-    if st.button("🏠", key="nav_home", help="Home"):
+    if st.button("", icon=":material/home:", key="nav_home", help="Home", use_container_width=True):
         st.session_state.active_tab = "home"
         st.rerun()
 with b2:
-    st.markdown('<div style="text-align:center; font-size:18px; padding-top:2px;">🎬</div>', unsafe_allow_html=True)
+    reels_svg = (
+        '<div class="nav-svg-box"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">'
+        '<rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect>'
+        '<polygon points="10 8 16 12 10 16 10 8" fill="#000"></polygon></svg></div>'
+    )
+    st.markdown(reels_svg, unsafe_allow_html=True)
 with b3:
-    st.markdown('<div style="text-align:center; font-size:18px; padding-top:2px;">➤</div>', unsafe_allow_html=True)
+    dm_svg = (
+        '<div class="nav-svg-box"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">'
+        '<line x1="22" y1="2" x2="11" y2="13"></line>'
+        '<polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg></div>'
+    )
+    st.markdown(dm_svg, unsafe_allow_html=True)
 with b4:
-    if st.button("🔍", key="nav_word", help="Word Lemmatiser"):
+    if st.button("", icon=":material/search:", key="nav_word", help="Word Lemmatiser", use_container_width=True):
         st.session_state.active_tab = "word"
         st.rerun()
 with b5:
-    st.markdown('<div style="text-align:center; font-size:18px; padding-top:2px;">👤</div>', unsafe_allow_html=True)
+    profile_svg = (
+        '<div class="nav-svg-box"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">'
+        '<path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>'
+        '<circle cx="12" cy="7" r="4"></circle></svg></div>'
+    )
+    st.markdown(profile_svg, unsafe_allow_html=True)
